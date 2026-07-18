@@ -1,0 +1,41 @@
+# Environnement virtuel
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+
+# Données (non versionnées)
+data/raw/
+data/processed/
+
+# Modèles entraînés
+models/
+
+# MLflow
+mlruns/
+mlflow.db
+
+# Logs et sorties générées
+logs/
+outputs/
+
+# Hydra (dossiers de run générés à chaque exécution)
+multirun/
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+
+# Environnement / secrets
+.env
+
+# IDE
+.vscode/
+.idea/

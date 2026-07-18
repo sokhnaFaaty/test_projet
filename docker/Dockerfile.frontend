@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+
+# ---- Étape 1 : build de l'application React ----
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm install
+
+COPY frontend/ .
+
+# Important : les variables VITE_* sont injectées au moment du BUILD, pas au
+# lancement du conteneur — Vite les intègre en dur dans le bundle JS envoyé
+# au navigateur (il n'existe pas de "variable d'environnement runtime" côté
+# client). D'où l'utilisation d'un ARG de build plutôt qu'un ENV classique.
+ARG VITE_API_URL=http://localhost:8000
+ENV VITE_API_URL=$VITE_API_URL
+
+RUN npm run build
+
+# ---- Étape 2 : service des fichiers statiques via Nginx, non-root ----
+# Image "unprivileged" officielle : tourne nativement en non-root (uid 101),
+# écoute sur le port 8080 (>1024, pas besoin de droits root pour l'ouvrir).
+FROM nginxinc/nginx-unprivileged:alpine AS runtime
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 8080
+
+CMD ["nginx", "-g", "daemon off;"]

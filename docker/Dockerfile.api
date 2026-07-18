@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile:1
+
+# ---- Étape 1 : build (installe les dépendances dans un venv isolé) ----
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Nécessaire pour compiler certaines dépendances (ex. xgboost) si aucun wheel
+# précompilé n'est disponible pour la plateforme cible.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml ./
+COPY src/ ./src/
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir .
+
+# ---- Étape 2 : image finale, légère, sans les outils de compilation ----
+FROM python:3.11-slim AS runtime
+
+# Utilisateur non-root : bonne pratique de sécurité, évite qu'un processus
+# compromis dans le conteneur ait des droits root sur l'hôte.
+RUN groupadd --system app && useradd --system --gid app --create-home appuser
+
+WORKDIR /app
+
+COPY --from=builder /opt/venv /opt/venv
+COPY api/ ./api/
+COPY src/ ./src/
+
+# Configuration injectée par variables d'environnement plutôt qu'en dur
+# (surchargeables au lancement, ex. via docker-compose ou `docker run -e`).
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH="/app" \
+    PYTHONUNBUFFERED=1 \
+    MODELS_DIR="/app/models" \
+    CORS_ORIGINS="http://localhost:5173,http://localhost:8080"
+
+RUN mkdir -p /app/models /app/logs && chown -R appuser:app /app
+
+USER appuser
+
+EXPOSE 8000
+
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,2 @@
+processed_path: data/processed/locations_clean.csv
+test_size: 0.2

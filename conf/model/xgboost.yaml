@@ -1,0 +1,6 @@
+name: xgboost
+params:
+  n_estimators: 300
+  max_depth: 6
+  learning_rate: 0.1
+  random_state: ${seed}

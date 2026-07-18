@@ -1,0 +1,35 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Les modèles sont générés localement (non versionnés, cf. .gitignore) :
+      # on les monte en lecture seule plutôt que de les copier dans l'image,
+      # pour ne pas avoir à rebuild l'image à chaque nouvel entraînement.
+      - ../models:/app/models:ro
+      - ../logs:/app/logs
+    environment:
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:8080
+      - MODELS_DIR=/app/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        VITE_API_URL: http://localhost:8000
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

@@ -1,0 +1,7 @@
+defaults:
+  - model: random_forest
+  - data: default
+  - _self_
+
+output_dir: models/
+seed: 42
