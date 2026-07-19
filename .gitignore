@@ -16,7 +16,7 @@ data/raw/
 data/processed/
 
 # Modèles entraînés
-models/
+/models/
 
 # MLflow
 mlruns/
